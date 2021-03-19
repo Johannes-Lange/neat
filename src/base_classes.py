@@ -50,7 +50,7 @@ class Node:
         return self.id == other.id
 
     def __str__(self):
-        return str(self.id) + ', ' + str(self.type)
+        return '{} ({})'.format(self.id, self.type)
 
     def __repr__(self):
         return self.__str__()
@@ -89,7 +89,7 @@ class Connection:
         return (self.n1 == other.n1) and (self.n2 == other.n2)
 
     def __str__(self):
-        return str(self.n1.id) + ' --> ' + str(self.n2.id)
+        return '{}: ({}) --> ({})'.format(self.id, self.n1.id, self.n2.id)
 
     def __repr__(self):
         return self.__str__()

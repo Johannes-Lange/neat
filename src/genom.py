@@ -1,5 +1,5 @@
 from __future__ import annotations
-from src.base_classes import Node, Connection
+from src.base_classes import Connection
 from src.registry import Registry
 from copy import deepcopy
 import random
