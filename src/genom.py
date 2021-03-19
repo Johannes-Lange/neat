@@ -18,8 +18,10 @@ class Genom:
         # Fitness
         self.fitness = None
 
+        # random connections and weights
         if connections is None:
             self.initial_connections()
+        # initialize with existing connections
         else:
             self.connections = connections
             for c in self.connections:
@@ -28,6 +30,47 @@ class Genom:
                 if c.n2 not in self.nodes:
                     self.nodes.append(self.registry.get_node(c.n2.id))
         self.sort_nodes_connections()
+
+        # TODO: enable/disable connections
+
+    def set_next_nodes(self):
+        for c in self.connections:
+            n1 = next(x for x in self.nodes if x == c.n1)
+            n2 = next(x for x in self.nodes if x == c.n2)
+
+            if n2 not in list(map(lambda x: x[0], n1.next_nodes)):
+                n1.next_nodes.append((n2, c.enabled, c.weight))
+
+    def forward(self, x: np.array, verbose: bool = False):
+        if verbose:
+            print('be sure to call set_next_nodes before forward')
+        assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
+
+        # assign input values from x
+        for i, n in enumerate(self.nodes):
+            if n.type != 'input':
+                break
+            n.in_val = x[i]
+
+        # evaluate (n times for recurrent connections to converge)
+        last_out = np.zeros(self.registry.outputs)
+        cycle = 0
+        while 1:
+            cycle += 1
+            for n in self.nodes:
+                n.evaluate()
+            out = self.get_output()
+            if np.allclose(out, last_out, rtol=1.e-3) or cycle > 1000:
+                break
+            last_out = out
+        if verbose:
+            print('cycles to converge:', cycle)
+        return out
+
+    def get_output(self):
+        out = self.nodes[self.registry.inputs+1:self.registry.inputs+1+self.registry.outputs]
+        ret = np.array([n.out_val for n in out])
+        return softmax(ret)
 
     def initial_connections(self):
         inputs = self.nodes[:self.registry.inputs+1]
@@ -96,10 +139,6 @@ class Genom:
             for c in self.connections:
                 c.weight = random.uniform(0, 2) * c.weight
 
-    def forward(self, x):
-        # TODO
-        pass
-
     def sort_nodes_connections(self):
         self.connections = sorted(self.connections, key=lambda x: x.id)
         self.nodes = sorted(self.nodes, key=lambda x: x.id)
@@ -138,3 +177,7 @@ def crossover_genes(p1: Genom, p2: Genom):
     return child
 
 
+def softmax(x):
+    # Compute softmax values for each sets of scores in x
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
