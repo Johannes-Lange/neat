@@ -1,43 +1,5 @@
+from src.base_classes import Node, Connection
 from copy import deepcopy
-import numpy as np
-
-
-class Node:
-    def __init__(self, id_: int, in_: bool = False, out_: bool = False):
-        self.id = id_
-        self.input = in_
-        self.output = out_
-
-        self.bias = None
-        self.activation = None
-
-    def __eq__(self, other):
-        return self.id == other.id
-
-    def create(self):
-        return deepcopy(self)
-
-    def compute_output(self):
-        # TODO
-        pass
-
-
-class Connection:
-    def __init__(self, node1: Node, node2: Node, id_: int = None):
-        self.id = id_
-        self.n1 = node1
-        self.n2 = node2
-        self.weight = 0  # between -2 and 2
-        self.enabled = False
-
-    def __eq__(self, other):
-        return (self.n1 == other.n1) and (self.n2 == other.n2)
-
-    def clear(self):
-        ret = deepcopy(self)
-        ret.weight = 0
-        ret.enabled = False
-        return ret
 
 
 class Registry:
@@ -58,6 +20,12 @@ class Registry:
         for _ in range(input_size):
             self.nodes.append(Node(id_=self.nb_nodes, in_=True))
             self.nb_nodes += 1
+
+        # initialize bias node
+        self.nodes.append(Node(id_=self.nb_nodes, in_=True))
+        self.nodes[-1].out_val = 1
+        self.nb_nodes += 1
+
         for _ in range(output_size):
             self.nodes.append(Node(id_=self.nb_nodes, out_=True))
             self.nb_nodes += 1
@@ -78,23 +46,18 @@ class Registry:
         self.nb_nodes += 1
 
     def _check_connection(self, n1: Node, n2: Node):
+        # check if connection already exists
         check = Connection(n1, n2)
         for c in self.connections:
             if c == check:
-                return c
+                return deepcopy(c)
+        # else create connection
+        self.connections.append(Connection(n1, n2, id_=self.nb_connections))
+        self.nb_connections += 1
+        return deepcopy(self.connections[-1])
 
     def get_nb_nodes(self):
         return self.nb_nodes
 
     def get_nb_connections(self):
         return self.nb_connections
-
-
-class Gen:
-    def __init__(self):
-        self.nodes = []
-        self.connections = []
-
-    def compute(self):
-        # TODO
-        pass
