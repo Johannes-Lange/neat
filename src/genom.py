@@ -7,54 +7,102 @@ import numpy as np
 
 
 class Genom:
-    def __init__(self, reg: Registry):
+    def __init__(self, reg: Registry, connections: [Connection] = None):
         # global registry to get nodes and connections from
         self.registry = reg
 
         # nodes and connections
-        self.nodes = deepcopy(self.registry.nodes)
+        self.nodes = deepcopy(self.registry.nodes[:self.registry.inputs + self.registry.outputs + 1])
         self.connections = []
 
         # Fitness
         self.fitness = None
 
+        if connections is None:
+            self.initial_connections()
+        else:
+            self.connections = connections
+            for c in self.connections:
+                if c.n1 not in self.nodes:
+                    self.nodes.append(self.registry.get_node(c.n1.id))
+                if c.n2 not in self.nodes:
+                    self.nodes.append(self.registry.get_node(c.n2.id))
+        self.sort_nodes_connections()
+
+    def initial_connections(self):
+        inputs = self.nodes[:self.registry.inputs+1]
+        outputs = self.nodes[self.registry.inputs + 1:]
+        for _ in range(len(outputs)):
+            n1 = random.choice(inputs)
+            assert n1.type in ['input', 'bias']
+            n2 = outputs.pop(0)
+            assert n2.type == 'output'
+            c = self.registry.get_connection(n1, n2)
+            c.rand_weight()
+            self.connections.append(c)
+
     def get_gene(self):
-        sorted_connections = sorted(self.connections, key=lambda x: x.id)
         ret = dict()
-        for c in sorted_connections:
+        for c in self.connections:
             ret[c.id] = c
         return ret
 
-    def add_connection(self):
-        c = self.registry.get_connection(*random.choices(self.nodes, k=2))
+    def mutate_link(self):
+        # add a new connection randomly, chance is 5%
+        # recurrent connections possible!
+        if random.random() < .95:
+            return
+        while True:
+            n1 = random.choice(self.nodes)
+            n2 = random.choice(self.nodes)
+            if (n1.type != 'output') and (n2.type != 'bias'):
+                break
+        c = self.registry.get_connection(n1, n2)
+        c.rand_weight()
         self.connections.append(c)
 
-    def crossover(self, o: Genom):
-        pass
+    def mutate_add_node(self):
+        # add node in connection, old connection disabled, chance is 3%
+        # register a new node
+        if random.random() < .97:
+            return
+        n_add = self.registry.create_node()
 
-    def mutate_link(self):
-        # randomly add connection with weight [-2, 2]
-        pass
+        # select random connection, disable it
+        c = random.choice(self.connections)
+        c.disable()
 
-    # def add_connection(self):
-    #     # add connection to unconnected nodes
-    #     pass
+        # create two new connections instead
+        c1_add = self.registry.get_connection(c.n1, n_add)
+        c1_add.weight = 1
+        c2_add = self.registry.get_connection(n_add, c.n2)
+        c2_add.weight = c.weight
 
-    def add_node(self):
-        # add node in connection, old connection disabled
-        pass
+        # append new connections and node
+        self.nodes.append(n_add)
+        self.connections.append(c1_add)
+        self.connections.append(c2_add)
+        self.sort_nodes_connections()
 
-    def enable_disable_connection(self):
-        # randomly enable/disable connections
-        pass
+    def mutate_enable_disable_connection(self):
+        # randomly enable/disable a connection
+        c = random.choice(self.connections)
+        c.en_dis_able()
 
-    def weight_shift(self):
+    def mutate_weight_shift(self):
+        # chance 80%, then eac weight
         # weight * [0, 2]
-        pass
+        if random.random() < .8:
+            for c in self.connections:
+                c.weight = random.uniform(0, 2) * c.weight
 
     def forward(self, x):
         # TODO
         pass
+
+    def sort_nodes_connections(self):
+        self.connections = sorted(self.connections, key=lambda x: x.id)
+        self.nodes = sorted(self.nodes, key=lambda x: x.id)
 
 
 def crossover_genes(p1: Genom, p2: Genom):
@@ -66,8 +114,8 @@ def crossover_genes(p1: Genom, p2: Genom):
     c_low = p_low.get_gene()
 
     # align genes
-    id_low = list(c_low.keys())
-    id_high = list(c_high.keys())
+    id_low = sorted(list(c_low.keys()))
+    id_high = sorted(list(c_high.keys()))
 
     max_id = max(id_low+id_high)
 
@@ -86,7 +134,7 @@ def crossover_genes(p1: Genom, p2: Genom):
         elif cid in id_high:
             new.append(c_high[cid])
             continue
-
-        return new
+    child = Genom(p1.registry, new)
+    return child
 
 
