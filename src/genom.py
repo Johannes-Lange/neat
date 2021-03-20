@@ -1,6 +1,7 @@
 from __future__ import annotations
 from src.base_classes import Connection
 from src.registry import Registry
+from src.graph import Graph
 from copy import deepcopy
 import random
 import numpy as np
@@ -12,6 +13,10 @@ class Genom:
     def __init__(self, reg: Registry, connections: [Connection] = None):
         # global registry to get nodes and connections from
         self.registry = reg
+
+        # for ordering
+        self.net_graph, self.computation_order = None, None
+        self.ready = False
 
         # nodes and connections
         self.nodes = deepcopy(self.registry.nodes[:self.registry.inputs + self.registry.outputs + 1])
@@ -31,9 +36,13 @@ class Genom:
                     self.nodes.append(self.registry.get_node(c.n1.id))
                 if c.n2 not in self.nodes:
                     self.nodes.append(self.registry.get_node(c.n2.id))
-        self.sort_nodes_connections()
 
-        # TODO: enable/disable connections
+    def ordered_graph(self):
+        # get ordered nodes and connections
+        self.sort_nodes_connections()
+        self.set_next_nodes()
+        self.net_graph = Graph(self.nodes, self.connections)
+        self.computation_order = self.net_graph.get_computation_order()
 
     def set_next_nodes(self):
         # find nodes from connection in self.nodes
@@ -69,6 +78,26 @@ class Genom:
         if verbose:
             print('cycles to converge:', cycle)
         return out
+
+    def forward_new(self, x: np.array, verbose: bool = False):
+        if not self.ready:
+            self.ordered_graph()
+            self.ready = True
+        assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
+
+        # assign input values from x
+        for i, n in enumerate(self.nodes):
+            if n.type != 'input':
+                break
+            n.in_val = x[i]
+
+        for ob in self.computation_order:
+            ob.eval_ordered()
+
+        for n in self.nodes:
+            n.in_val = 0
+
+        return self.get_output()
 
     def get_output(self):
         out = self.nodes[self.registry.inputs+1:self.registry.inputs+1+self.registry.outputs]

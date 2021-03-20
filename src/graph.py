@@ -3,6 +3,9 @@ from src.base_classes import Node, Connection
 
 class Graph:
     def __init__(self, nodes: [Node], connections: [Connection]):
+        self.nodes = nodes
+        self.cons = connections
+
         self.types = {'input': [], 'bias': [], 'hidden': [], 'output': []}
         self.graph = dict()
         for n in nodes:
@@ -20,7 +23,9 @@ class Graph:
         self.order = []
         self.recurrent = []
 
-    def algo(self):
+        self.computation_order = []
+
+    def get_computation_order(self):
         # all outputs from the input layer may be calculated first
         for n_id in (self.types['input'] + self.types['bias']):
             self.graph[n_id]['active'] = True
@@ -33,6 +38,16 @@ class Graph:
         for n_id in self.types['output']:
             self.recursive_solve(n_id)
             self.reset_visited()
+
+        for (op, id_) in self.order + self.recurrent:
+            if op == 'node':
+                ob = next(x for x in self.nodes if x.id == id_)
+            elif 'connection' in op:
+                ob = next(x for x in self.cons if x.id == id_)
+            else:
+                raise ValueError('error in graph computation')
+            self.computation_order.append(ob)
+        return self.computation_order
 
     def recursive_solve(self, node_id, last_node=None):
         # have we visited this node?

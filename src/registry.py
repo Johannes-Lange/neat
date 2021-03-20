@@ -34,11 +34,14 @@ class Registry:
     def get_connection(self, n1: Node, n2: Node):
         assert (n1 in self.nodes) and (n2 in self.nodes)
         if Connection(n1, n2) in self.connections:
-            return self._check_connection(n1, n2)
+            c = self._check_connection(n1, n2)
+            return c
         else:
-            self.connections.append(Connection(n1, n2, id_=self.nb_connections))
+            new_con = Connection(n1, n2, id_=self.nb_connections)
+            self.connections.append(new_con)
             self.nb_connections += 1
-            return self._check_connection(n1, n2)
+            c = self._check_connection(n1, n2)
+            return c
 
     # create new node
     def create_node(self):
@@ -52,7 +55,11 @@ class Registry:
         check = Connection(n1, n2)
         for c in self.connections:
             if c == check:
-                return deepcopy(c)
+                ret = deepcopy(c)
+                # set nodes, if not adress wrong
+                ret.set_nodes(n1, n2)
+                return ret
+
         # else create connection
         self.connections.append(Connection(n1, n2, id_=self.nb_connections))
         self.nb_connections += 1

@@ -28,6 +28,9 @@ class Node:
             if enabled:
                 n.in_val += weight * self.out_val
 
+    def eval_ordered(self):
+        self.activation()
+
     # return this node
     def get(self):
         return deepcopy(self).default()
@@ -67,11 +70,19 @@ class Connection:
         self.weight = weight  # between -2 and 2
         self.enabled = True
 
+    def eval_ordered(self):
+        if self.enabled:
+            self.n2.in_val += self.n1.out_val * self.weight
+
     def clear(self):
         ret = deepcopy(self)
         ret.weight = 0
         ret.enabled = False
         return ret
+
+    def set_nodes(self, n1: Node, n2: Node):
+        self.n1 = n1
+        self.n2 = n2
 
     def rand_weight(self):
         self.weight = random.uniform(-2., 2.)
