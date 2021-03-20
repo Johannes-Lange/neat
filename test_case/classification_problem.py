@@ -1,6 +1,6 @@
 import numpy as np
 
-input_set = np.random.uniform(-1, 1, (1000, 2))
+input_set = np.random.uniform(-1, 1, (100, 2))
 
 
 def inside_circle(x, y):
@@ -18,4 +18,4 @@ def inside(x, y, prediction):
     if label == pred:
         return .1
     else:
-        return -.1
+        return 0

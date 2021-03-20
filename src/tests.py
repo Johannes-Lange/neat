@@ -38,7 +38,7 @@ def test_forward():
     g1.set_next_nodes()
     g1.ordered_graph()
     for _ in range(10):
-        out = g1.forward_new(x, verbose=True)
+        out = g1.forward_new(x,)
     print(out)
 
 

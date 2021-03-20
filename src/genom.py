@@ -7,6 +7,10 @@ import random
 import numpy as np
 
 C1, C2, C3 = 1, 1, .4
+P_WEIGHT = .8
+P_ENDISABLE = .75
+P_NEW_NODE = .03
+P_NEW_LINK = .05
 
 
 class Genom:
@@ -68,7 +72,7 @@ class Genom:
             print('cycles to converge:', cycle)
         return out
 
-    def forward_new(self, x: np.array, verbose: bool = False):
+    def forward_new(self, x: np.array):
         if not self.ready:
             self.ordered_graph()
         assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
@@ -111,11 +115,19 @@ class Genom:
             ret[c.id] = c
         return ret
 
+    """ *** Mutations *** """
+    def apply_mutations(self):
+        # TODO: order?
+        self.mutate_link()
+        self.mutate_add_node()
+        self.mutate_weight_shift()
+        self.mutate_enable_disable_connection()
+
+    # add a new connection randomly
     def mutate_link(self):
         self.ready = False
-        # add a new connection randomly, chance is 5%
         # recurrent connections possible!
-        if random.random() < .95:
+        if random.random() < 1-P_NEW_LINK:
             return
         while True:
             n1 = random.choice(self.nodes)
@@ -127,11 +139,11 @@ class Genom:
         self.connections.append(c)
         self.sort_nodes_connections()
 
+    # add node in connection, old connection disabled
     def mutate_add_node(self):
         self.ready = False
-        # add node in connection, old connection disabled, chance is 3%
         # register a new node
-        if random.random() < .97:
+        if random.random() < 1-P_NEW_NODE:
             return
         n_add = self.registry.create_node()
 
@@ -151,22 +163,26 @@ class Genom:
         self.connections.append(c2_add)
         self.sort_nodes_connections()
 
+    # randomly enable/disable a connection
     def mutate_enable_disable_connection(self):
         self.ready = False
-        # randomly enable/disable a connection
+        if random.random() < 1-P_ENDISABLE:
+            return
         c = random.choice(self.connections)
         c.en_dis_able()
         self.sort_nodes_connections()
 
+    # shift weight
     def mutate_weight_shift(self):
         self.ready = False
-        # chance 80%, then eac weight
         # weight * [0, 2]
-        if random.random() < .8:
-            for c in self.connections:
-                c.weight = random.uniform(0, 2) * c.weight
+        if random.random() < 1-P_WEIGHT:
+            return
+        for c in self.connections:
+            c.weight = random.uniform(0, 2) * c.weight
         self.sort_nodes_connections()
 
+    """ *** prepare for forward *** """
     def sort_nodes_connections(self):
         self.connections = sorted(self.connections, key=lambda x: x.id)
         self.nodes = sorted(self.nodes, key=lambda x: x.id)

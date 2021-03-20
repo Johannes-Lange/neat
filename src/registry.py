@@ -56,7 +56,7 @@ class Registry:
         for c in self.connections:
             if c == check:
                 ret = deepcopy(c)
-                # set nodes, if not adress wrong
+                # set nodes, if not adress would be wrong
                 ret.set_nodes(n1, n2)
                 return ret
 
