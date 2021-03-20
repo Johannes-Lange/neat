@@ -40,7 +40,7 @@ class Node:
             self.out_val = self.in_val
         else:
             # sigmoid activation
-            self.out_val = 1 / (1 + np.exp(-self.in_val))
+            self.out_val = 1 / (1 + np.exp(-4.9*self.in_val))
 
     def reset_vals(self):
         self.in_val = self.out_val = 0

@@ -6,7 +6,7 @@ from copy import deepcopy
 import random
 import numpy as np
 
-C1, C2, C3 = 1, 1, 1
+C1, C2, C3 = 1, 1, .4
 
 
 class Genom:
@@ -37,23 +37,12 @@ class Genom:
                 if c.n2 not in self.nodes:
                     self.nodes.append(self.registry.get_node(c.n2.id))
 
-    def ordered_graph(self):
-        # get ordered nodes and connections
-        self.sort_nodes_connections()
-        self.set_next_nodes()
-        self.net_graph = Graph(self.nodes, self.connections)
-        self.computation_order = self.net_graph.get_computation_order()
-
-    def set_next_nodes(self):
-        # find nodes from connection in self.nodes
-        for c in self.connections:
-            n1 = next(x for x in self.nodes if x == c.n1)
-            n2 = next(x for x in self.nodes if x == c.n2)
-
-            if n2 not in list(map(lambda x: x[0], n1.next_nodes)):
-                n1.next_nodes.append((n2, c.enabled, c.weight))
-
     def forward(self, x: np.array, verbose: bool = False):
+        if not self.ready:
+            self.sort_nodes_connections()
+            self.set_next_nodes()
+            self.ready = True
+
         if verbose:
             print('be sure to call set_next_nodes before forward')
         assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
@@ -82,7 +71,6 @@ class Genom:
     def forward_new(self, x: np.array, verbose: bool = False):
         if not self.ready:
             self.ordered_graph()
-            self.ready = True
         assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
 
         # assign input values from x
@@ -105,6 +93,7 @@ class Genom:
         return softmax(ret)
 
     def initial_connections(self):
+        self.ready = False
         inputs = self.nodes[:self.registry.inputs+1]
         outputs = self.nodes[self.registry.inputs + 1:]
         for _ in range(len(outputs)):
@@ -123,6 +112,7 @@ class Genom:
         return ret
 
     def mutate_link(self):
+        self.ready = False
         # add a new connection randomly, chance is 5%
         # recurrent connections possible!
         if random.random() < .95:
@@ -138,6 +128,7 @@ class Genom:
         self.sort_nodes_connections()
 
     def mutate_add_node(self):
+        self.ready = False
         # add node in connection, old connection disabled, chance is 3%
         # register a new node
         if random.random() < .97:
@@ -161,12 +152,14 @@ class Genom:
         self.sort_nodes_connections()
 
     def mutate_enable_disable_connection(self):
+        self.ready = False
         # randomly enable/disable a connection
         c = random.choice(self.connections)
         c.en_dis_able()
         self.sort_nodes_connections()
 
     def mutate_weight_shift(self):
+        self.ready = False
         # chance 80%, then eac weight
         # weight * [0, 2]
         if random.random() < .8:
@@ -177,6 +170,24 @@ class Genom:
     def sort_nodes_connections(self):
         self.connections = sorted(self.connections, key=lambda x: x.id)
         self.nodes = sorted(self.nodes, key=lambda x: x.id)
+
+    def ordered_graph(self):
+        # get ordered nodes and connections
+        self.sort_nodes_connections()
+        self.set_next_nodes()
+        self.net_graph = Graph(self.nodes, self.connections)
+        self.computation_order = self.net_graph.get_computation_order()
+
+        self.ready = True
+
+    def set_next_nodes(self):
+        # find nodes from connection in self.nodes
+        for c in self.connections:
+            n1 = next(x for x in self.nodes if x == c.n1)
+            n2 = next(x for x in self.nodes if x == c.n2)
+
+            if n2 not in list(map(lambda x: x[0], n1.next_nodes)):
+                n1.next_nodes.append((n2, c.enabled, c.weight))
 
 
 def crossover_genes(p1: Genom, p2: Genom):
