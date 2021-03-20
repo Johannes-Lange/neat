@@ -5,6 +5,8 @@ from copy import deepcopy
 import random
 import numpy as np
 
+C1, C2, C3 = 1, 1, 1
+
 
 class Genom:
     def __init__(self, reg: Registry, connections: [Connection] = None):
@@ -34,6 +36,7 @@ class Genom:
         # TODO: enable/disable connections
 
     def set_next_nodes(self):
+        # find nodes from connection in self.nodes
         for c in self.connections:
             n1 = next(x for x in self.nodes if x == c.n1)
             n2 = next(x for x in self.nodes if x == c.n2)
@@ -103,6 +106,7 @@ class Genom:
         c = self.registry.get_connection(n1, n2)
         c.rand_weight()
         self.connections.append(c)
+        self.sort_nodes_connections()
 
     def mutate_add_node(self):
         # add node in connection, old connection disabled, chance is 3%
@@ -131,6 +135,7 @@ class Genom:
         # randomly enable/disable a connection
         c = random.choice(self.connections)
         c.en_dis_able()
+        self.sort_nodes_connections()
 
     def mutate_weight_shift(self):
         # chance 80%, then eac weight
@@ -138,6 +143,7 @@ class Genom:
         if random.random() < .8:
             for c in self.connections:
                 c.weight = random.uniform(0, 2) * c.weight
+        self.sort_nodes_connections()
 
     def sort_nodes_connections(self):
         self.connections = sorted(self.connections, key=lambda x: x.id)
@@ -158,6 +164,7 @@ def crossover_genes(p1: Genom, p2: Genom):
 
     max_id = max(id_low+id_high)
 
+    # TODO: does this work?
     new = []
     for cid in range(max_id + 1):
         # connection in both genes
@@ -168,13 +175,45 @@ def crossover_genes(p1: Genom, p2: Genom):
             else:
                 new.append(c_high[cid])
                 continue
-
         # disjoint and excess
         elif cid in id_high:
             new.append(c_high[cid])
             continue
     child = Genom(p1.registry, new)
     return child
+
+
+def distance(g1: Genom, g2: Genom):
+    # dictionary with id as key and connection
+    cons1, cons2 = g1.get_gene(), g2.get_gene()
+
+    # innovation numers
+    id1 = sorted(list(cons1.keys()))
+    id2 = sorted(list(cons2.keys()))
+    max_id = max(id1 + id2)
+
+    # calculate disjoint and excess
+    match = []
+    disjoint = 0
+    excess = abs(max(id2) - max(id1))
+    for cid in range(max_id + 1 - excess):
+        if (cid in id1) and (cid in id2):
+            match.append(cid)
+        if (cid in id1) or (cid in id2):
+            disjoint += 1
+
+    # calculate distance
+    w_diff = [abs(cons1[cid].weight - cons2[cid].weight) for cid in match]
+    w_diff = save_devide(w_diff)
+    n = max(len(id1), len(id2))
+    return C1 * excess / n + C2 * disjoint / n + C3 * w_diff
+
+
+def save_devide(x):
+    if len(x) == 0:
+        return 0.
+    else:
+        return sum(x) / len(x)
 
 
 def softmax(x):

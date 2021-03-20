@@ -1,7 +1,7 @@
 from src.genom import Genom, crossover_genes
 from src.registry import Registry
 
-from test_case.classification_problem import input_set, inside_circle
+from test_case.classification_problem import input_set, inside
 
 
 class Population:
@@ -11,22 +11,30 @@ class Population:
 
         self.population_size = population_size
         self.population = []
+        self.scores = []
 
         for _ in range(self.population_size):
             self.population.append(Genom(self.registry))
 
-        # # temp
-        # x = np.random.random(25)
-        # for g in self.population:
-        #     g.mutate_add_node()
-        #     g.set_next_nodes()
-        #     ret = g.forward(x)
-        #     print(ret)
-        # print(self.registry.connections)
-
     def update(self):
         """ evaluate all genoms, genetic operations, next population """
+
+        # reset scores
+        self.scores = []
         pass
 
+    def evaluate_nets(self):
+        in_data = input_set
+        for g in self.population:
+            score = 0
+            g.set_next_nodes()
+            for i in range(in_data.shape[0]):
+                pred = g.forward(in_data[i])
+                ret = self.fitness_fn(*in_data[i], pred)
+                score += ret
+            print(score)
+            self.scores.append(score)
 
-pop = Population(2, 1, 100, inside_circle)
+
+pop = Population(2, 2, 100, inside)
+pop.evaluate_nets()
