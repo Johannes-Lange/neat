@@ -9,8 +9,8 @@ import numpy as np
 C1, C2, C3 = 1, 1, .4
 P_WEIGHT = .8
 P_ENDISABLE = .75
-P_NEW_NODE = .03
-P_NEW_LINK = .05
+P_NEW_NODE = .5  # 0.03
+P_NEW_LINK = .5  # 0.01
 
 
 class Genom:
@@ -108,6 +108,9 @@ class Genom:
             c = self.registry.get_connection(n1, n2)
             c.rand_weight()
             self.connections.append(c)
+
+    def set_fitness(self, f: float):
+        self.fitness = f
 
     def get_gene(self):
         ret = dict()

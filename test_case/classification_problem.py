@@ -16,6 +16,6 @@ def inside(x, y, prediction):
     label = np.argmax(inside_circle(x, y))
     pred = np.argmax(prediction)
     if label == pred:
-        return .1
+        return 1
     else:
         return 0
