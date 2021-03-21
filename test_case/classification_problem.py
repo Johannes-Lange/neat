@@ -1,7 +1,7 @@
 import numpy as np
 import random
 
-INPUT_CIRC = np.random.uniform(-1, 1, (100, 2))
+INPUT_CIRC = np.random.uniform(-1, 1, (1000, 2))
 
 
 def inside_circle(x, y):

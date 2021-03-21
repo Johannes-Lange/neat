@@ -8,4 +8,14 @@ def cross_entropy(predictions, targets, epsilon=1e-12):
     return ce
 
 
-print(cross_entropy(np.array([.5, .5]), np.array([1, 0])))
+def save_devide(x):
+    if len(x) == 0:
+        return 0.
+    else:
+        return sum(x) / len(x)
+
+
+def softmax(x):
+    # Compute softmax values for each sets of scores in x
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()

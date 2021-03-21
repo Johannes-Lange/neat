@@ -1,4 +1,5 @@
 from __future__ import annotations
+from src.helper_functions import softmax, save_devide
 from src.base_classes import Connection
 from src.registry import Registry
 from src.graph import Graph
@@ -297,16 +298,3 @@ def distance(g1: Genom, g2: Genom):
     w_diff = save_devide(w_diff)
     n = max(len(id1), len(id2))
     return C1 * excess / n + C2 * disjoint / n + C3 * w_diff
-
-
-def save_devide(x):
-    if len(x) == 0:
-        return 0.
-    else:
-        return sum(x) / len(x)
-
-
-def softmax(x):
-    # Compute softmax values for each sets of scores in x
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum()
