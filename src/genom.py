@@ -9,7 +9,7 @@ import numpy as np
 
 C1, C2, C3 = 1, 1, .4
 P_WEIGHT = .8
-P_ENDISABLE = .75
+P_ENDISABLE = .5
 P_NEW_NODE = .03  # 0.03
 P_NEW_LINK = .01  # 0.01
 
@@ -128,6 +128,7 @@ class Genom:
             else:
                 n2 = next(x for x in self.nodes if x == c.n2)
             c.set_nodes(n1, n2)
+        self.sort_nodes_connections()
 
     def set_fitness(self, f: float):
         self.fitness = f
@@ -159,7 +160,7 @@ class Genom:
             n2 = random.choice(self.nodes)
             if Connection(n1, n2) in self.connections:
                 continue
-            if (n1.type != 'output') and (n2.type != 'bias'):
+            if (n1.type != 'output') and (n2.type != 'bias') and (n2.type != 'input'):
                 break
             if count > 10:
                 return
@@ -210,7 +211,7 @@ class Genom:
             return
         for c in self.connections:
             if random.random() < .9:
-                c.weight *= random.uniform(.9, 1.1)
+                c.weight *= random.uniform(0.5, 1.5)
             else:
                 c.weight = random.uniform(-2, 2)
         self.sort_nodes_connections()
@@ -277,8 +278,8 @@ def crossover_genes(p1: Genom, p2: Genom):
     p_high, p_low = (p1, p2) if p1.fitness > p2.fitness else (p2, p1)
 
     # get boths list of connections, dict with connection id as key -> connection
-    c_low = p_low.get_gene()
-    c_high = p_high.get_gene()
+    c_low = deepcopy(p_low.get_gene())
+    c_high = deepcopy(p_high.get_gene())
 
     # align genes
     id_low = sorted(list(c_low.keys()))
@@ -314,17 +315,26 @@ def distance(g1: Genom, g2: Genom):
     max_id = max(id1 + id2)
 
     # calculate disjoint and excess
-    match = []
-    disjoint = 0
-    excess = abs(max(id2) - max(id1))
-    for cid in range(max_id + 1 - excess):
-        if (cid in id1) and (cid in id2):
-            match.append(cid)
-        if (cid in id1) or (cid in id2):
-            disjoint += 1
+    match, disjoint, excess = [], [], []
 
-    # calculate distance
+    k1, k2 = [], []
+    for i in range(max_id):
+        k1.append(i if i in id1 else -1)
+        k2.append(i if i in id2 else -1)
+
+    for idx, (iv1, iv2) in enumerate(zip(k1, k2)):
+        if idx <= max_id:
+            if iv1 != -1 and iv2 != -1:
+                match.append(idx)
+                continue
+            elif iv1 != -1 or iv2 != -1:
+                disjoint.append(idx)
+                continue
+        else:
+            if iv1 != -1 or iv2 != -1:
+                excess.append(idx)
+
     w_diff = [abs(cons1[cid].weight - cons2[cid].weight) for cid in match]
     w_diff = save_devide(w_diff)
     n = max(len(id1), len(id2))
-    return C1 * excess / n + C2 * disjoint / n + C3 * w_diff
+    return C1 * len(excess) / n + C2 * len(disjoint) / n + C3 * w_diff

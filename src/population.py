@@ -3,13 +3,11 @@ from src.registry import Registry
 import random
 import numpy as np
 
-from test_case.classification_problem import INPUT_CIRC, inside
-
 """
 Score has to be >= 0!
 """
 
-D_THRESHOLD = 3.
+D_THRESHOLD = 4.
 
 
 class Population:
@@ -51,15 +49,16 @@ class Population:
         self.new_size = 0
 
     def evaluate_nets(self):
-        inputs = INPUT_CIRC
+        inputs = np.random.uniform(-1.25, 1.25, (100, 2))  # INPUT_CIRC
         for g in self.population:
             score = 0
             for i, x in enumerate(inputs):
-                output = np.argmax(g.forward_rec(inputs[i]))
-                target = np.argmax(inputs[i])
+                output = g.forward(x)
+                output = np.argmax(output)
+                target = 1 if np.linalg.norm(x) < 1 else 0
                 score += 1 if output == target else 0
 
-            score /= inputs.shape[0]
+            score /= inputs.shape[0] / 100
             g.set_fitness(score)
             self.scores.append(score)
 
@@ -139,9 +138,3 @@ def calculate_spawn_amount(species, pop_size):
 
     spawn = [int(round(s / total_size * pop_size)) for s in sizes]
     return spawn
-
-
-pop = Population(2, 2, 50, inside)
-
-for _ in range(300):
-    pop.update()
