@@ -2,7 +2,7 @@ from src.base_classes import Node, Connection
 
 
 class Graph:
-    def __init__(self, nodes: [Node], connections: [Connection]):
+    def __init__(self, nodes: list[Node], connections: list[Connection]):
         self.nodes = nodes
         self.cons = connections
 
@@ -47,7 +47,8 @@ class Graph:
             else:
                 raise ValueError('error in graph computation')
             self.computation_order.append(ob)
-        return self.computation_order
+        # return order + recurrent connections
+        return self.computation_order, len(self.order)
 
     def recursive_solve(self, node_id, last_node=None):
         # have we visited this node?

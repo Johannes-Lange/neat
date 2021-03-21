@@ -1,6 +1,10 @@
 import numpy as np
+import random
 
-input_set = np.random.uniform(-1, 1, (100, 2))
+INPUT_CIRC = np.random.uniform(-1, 1, (100, 2))
+
+
+INPUT_XOR = np.random.randint(0, 2, size=(100, 2))
 
 
 def inside_circle(x, y):
@@ -19,3 +23,14 @@ def inside(x, y, prediction):
         return 1
     else:
         return 0
+
+
+def xor(x, y, pred):
+    # if pred[0] == pred[1]:
+    #     return 0
+    pred = np.argmax(pred)
+    if x != y:
+        label = 1
+    else:
+        label = 0
+    return 1 if pred == label else 0

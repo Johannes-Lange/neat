@@ -1,14 +1,15 @@
 from src.genom import Genom, crossover_genes, distance
 from src.registry import Registry
 import random
+import numpy as np
 
-from test_case.classification_problem import input_set, inside
+from test_case.classification_problem import INPUT_CIRC, inside, xor, INPUT_XOR
 
 """
 Score has to be >= 0!
 """
 
-D_THRESHOLD = 3.
+D_THRESHOLD = 2.
 
 
 class Population:
@@ -33,6 +34,7 @@ class Population:
         """ evaluate all genoms, genetic operations, next population """
         self.generation += 1
         self.evaluate_nets()
+
         self.speciate()
         self.explicit_fitness_sharing()
         self.reproduce()
@@ -49,21 +51,19 @@ class Population:
         self.new_size = 0
 
     def evaluate_nets(self):
-        in_data = input_set
+        in_data = INPUT_CIRC
         for g in self.population:
             score = 0
-            g.set_next_nodes()
             for i in range(in_data.shape[0]):
                 pred = g.forward_new(in_data[i])
                 ret = self.fitness_fn(*in_data[i], pred)
                 score += ret
-            # print(score)
+            # print(pred)
             g.set_fitness(score)
             self.scores.append(score)
 
     def speciate(self):
         # save genoms in species as tuple (genom, score)
-        c = 0
         self.species = []
         for g, s in zip(self.population, self.scores):
             succ = False
@@ -129,6 +129,7 @@ class Population:
                 child.apply_mutations()
 
                 new_population.append(child)
+        self.population = new_population
 
 
 def calculate_spawn_amount(species, pop_size):
@@ -139,7 +140,7 @@ def calculate_spawn_amount(species, pop_size):
     return spawn
 
 
-pop = Population(2, 2, 100, inside)
+pop = Population(2, 2, 150, inside)
 
-for _ in range(1000):
+for _ in range(10000):
     pop.update()

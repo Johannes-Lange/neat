@@ -50,6 +50,22 @@ class Registry:
         self.nb_nodes += 1
         return deepcopy(new_node)
 
+    # split a connection and add a node
+    def split_connection(self, c: Connection):
+        # find this connection
+        local_con = next(x for x in self.connections if x == c)
+
+        # check if this connection has already been split
+        if local_con.split is not None:
+            # which node id resulted from splitting? --> return this
+            n_id = local_con.split
+            return self.get_node(n_id)
+        else:
+            # create a new node, add split id to connection
+            new_node = self.create_node()
+            local_con.split = new_node.id
+            return new_node
+
     def _check_connection(self, n1: Node, n2: Node):
         # check if connection already exists
         check = Connection(n1, n2)
@@ -61,9 +77,12 @@ class Registry:
                 return ret
 
         # else create connection
-        self.connections.append(Connection(n1, n2, id_=self.nb_connections))
+        new_con = Connection(n1, n2, id_=self.nb_connections)
+        self.connections.append(new_con)
         self.nb_connections += 1
-        return deepcopy(self.connections[-1])
+        ret = deepcopy(new_con)
+        ret.set_nodes(n1, n2)
+        return ret
 
     def get_node(self, id_: int):
         return deepcopy(self.nodes[id_])

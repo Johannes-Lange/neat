@@ -18,6 +18,7 @@ class Node:
         # for calculation
         self.in_val = 0  # sum of inputs
         self.out_val = 0  # after activation
+        self.rec_val = 0  # recurrent value, saves last output state
         self.active = True
 
         self.next_nodes = []  # list of all outgoing connections (node, enabled, weight)
@@ -30,6 +31,7 @@ class Node:
 
     def eval_ordered(self):
         self.activation()
+        # print(self.in_val)
 
     # return this node
     def get(self):
@@ -70,9 +72,14 @@ class Connection:
         self.weight = weight  # between -2 and 2
         self.enabled = True
 
+        # for the innovation number, has this connection been split? If yes, which node id resulted?
+        self.split = None
+
     def eval_ordered(self):
         if self.enabled:
+            # print(self.n1.out_val * self.weight)
             self.n2.in_val += self.n1.out_val * self.weight
+            # print(self.n2.in_val)
 
     def clear(self):
         ret = deepcopy(self)
@@ -85,7 +92,7 @@ class Connection:
         self.n2 = n2
 
     def rand_weight(self):
-        self.weight = random.uniform(-2., 2.)
+        self.weight = random.uniform(-1.5, 1.5)
 
     def enable(self):
         self.enabled = True

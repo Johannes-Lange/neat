@@ -9,21 +9,22 @@ import numpy as np
 C1, C2, C3 = 1, 1, .4
 P_WEIGHT = .8
 P_ENDISABLE = .75
-P_NEW_NODE = .5  # 0.03
-P_NEW_LINK = .5  # 0.01
+P_NEW_NODE = .03  # 0.03
+P_NEW_LINK = .01  # 0.01
 
 
 class Genom:
-    def __init__(self, reg: Registry, connections: [Connection] = None):
+    def __init__(self, reg: Registry, connections: list[Connection] = None):
         # global registry to get nodes and connections from
         self.registry = reg
 
         # for ordering
         self.net_graph, self.computation_order = None, None
         self.ready = False
+        self.normal_ops = 0
 
         # nodes and connections
-        self.nodes = deepcopy(self.registry.nodes[:self.registry.inputs + self.registry.outputs + 1])
+        self.nodes = []
         self.connections = []
 
         # Fitness
@@ -34,12 +35,7 @@ class Genom:
             self.initial_connections()
         # initialize with existing connections
         else:
-            self.connections = connections
-            for c in self.connections:
-                if c.n1 not in self.nodes:
-                    self.nodes.append(self.registry.get_node(c.n1.id))
-                if c.n2 not in self.nodes:
-                    self.nodes.append(self.registry.get_node(c.n2.id))
+            self.inherit_connections(connections)
 
     def forward(self, x: np.array, verbose: bool = False):
         if not self.ready:
@@ -86,20 +82,25 @@ class Genom:
         for ob in self.computation_order:
             ob.eval_ordered()
 
+        out = self.get_output()
         for n in self.nodes:
-            n.in_val = 0
-
-        return self.get_output()
+            n.in_val = 0  # = n.out_val = 0
+        return out
 
     def get_output(self):
-        out = self.nodes[self.registry.inputs+1:self.registry.inputs+1+self.registry.outputs]
+        out = [n for n in self.nodes if n.type == 'output']
         ret = np.array([n.out_val for n in out])
         return softmax(ret)
 
     def initial_connections(self):
         self.ready = False
-        inputs = self.nodes[:self.registry.inputs+1]
-        outputs = self.nodes[self.registry.inputs + 1:]
+
+        self.nodes = deepcopy(self.registry.nodes[:self.registry.inputs + self.registry.outputs + 1])
+        for n in self.nodes:
+            n.default()
+
+        inputs = [n for n in self.nodes if (n.type == 'input') or (n.type == 'hidden')]
+        outputs = [n for n in self.nodes if n.type == 'output']
         for _ in range(len(outputs)):
             n1 = random.choice(inputs)
             assert n1.type in ['input', 'bias']
@@ -108,6 +109,22 @@ class Genom:
             c = self.registry.get_connection(n1, n2)
             c.rand_weight()
             self.connections.append(c)
+
+    def inherit_connections(self, connections):
+        self.connections = connections
+        for c in self.connections:
+            if c.n1 not in self.nodes:
+                n1 = self.registry.get_node(c.n1.id)
+                self.nodes.append(n1)
+            else:
+                n1 = next(x for x in self.nodes if x == c.n1)
+
+            if c.n2 not in self.nodes:
+                n2 = self.registry.get_node(c.n2.id)
+                self.nodes.append(n2)
+            else:
+                n2 = next(x for x in self.nodes if x == c.n2)
+            c.set_nodes(n1, n2)
 
     def set_fitness(self, f: float):
         self.fitness = f
@@ -121,8 +138,8 @@ class Genom:
     """ *** Mutations *** """
     def apply_mutations(self):
         # TODO: order?
-        self.mutate_link()
         self.mutate_add_node()
+        self.mutate_link()
         self.mutate_weight_shift()
         self.mutate_enable_disable_connection()
 
@@ -145,14 +162,16 @@ class Genom:
     # add node in connection, old connection disabled
     def mutate_add_node(self):
         self.ready = False
-        # register a new node
+
         if random.random() < 1-P_NEW_NODE:
             return
-        n_add = self.registry.create_node()
 
         # select random connection, disable it
         c = random.choice(self.connections)
         c.disable()
+
+        # get the splitting node
+        n_add = self.registry.split_connection(c)
 
         # create two new connections instead
         c1_add = self.registry.get_connection(c.n1, n_add)
@@ -182,7 +201,10 @@ class Genom:
         if random.random() < 1-P_WEIGHT:
             return
         for c in self.connections:
-            c.weight = random.uniform(0, 2) * c.weight
+            if random.random() < .9:
+                c.weight *= random.uniform(.9, 1.1)
+            else:
+                c.weight = random.uniform(-2, 2)
         self.sort_nodes_connections()
 
     """ *** prepare for forward *** """
@@ -195,7 +217,7 @@ class Genom:
         self.sort_nodes_connections()
         self.set_next_nodes()
         self.net_graph = Graph(self.nodes, self.connections)
-        self.computation_order = self.net_graph.get_computation_order()
+        self.computation_order, self.normal_ops = self.net_graph.get_computation_order()
 
         self.ready = True
 
@@ -213,14 +235,13 @@ def crossover_genes(p1: Genom, p2: Genom):
     assert (p1.fitness is not None) and (p2.fitness is not None), 'Fitness has to be evaluated before crossover'
     p_high, p_low = (p1, p2) if p1.fitness > p2.fitness else (p2, p1)
 
-    # get boths list of connections
-    c_high = p_high.get_gene()
+    # get boths list of connections, dict with connection id as key -> connection
     c_low = p_low.get_gene()
+    c_high = p_high.get_gene()
 
     # align genes
     id_low = sorted(list(c_low.keys()))
     id_high = sorted(list(c_high.keys()))
-
     max_id = max(id_low+id_high)
 
     # TODO: does this work?
