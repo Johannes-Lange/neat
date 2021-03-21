@@ -74,15 +74,20 @@ class Genom:
         assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
 
         # assign input values from x
-        for i, n in enumerate(self.nodes):
-            if n.type != 'input':
-                break
+        for i, n in enumerate([no for no in self.nodes if no.type == 'input']):
             n.in_val = x[i]
+            # print(f'{n} set to {x[i]}')
 
         for ob in self.computation_order:
             ob.eval_ordered()
+            # print([(n.in_val, n.type) for n in self.nodes])
 
         out = self.get_output()
+
+        # if all(out == np.array([.5, .5])):
+        #     print(self.nodes)
+        #     print([c.enabled for c in self.connections])
+
         for n in self.nodes:
             n.in_val = 0  # = n.out_val = 0
         return out
@@ -111,7 +116,7 @@ class Genom:
             self.connections.append(c)
 
     def inherit_connections(self, connections):
-        self.connections = connections
+        self.connections = deepcopy(connections)
         for c in self.connections:
             if c.n1 not in self.nodes:
                 n1 = self.registry.get_node(c.n1.id)

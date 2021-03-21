@@ -38,7 +38,7 @@ class Node:
         return deepcopy(self).default()
 
     def activation(self):
-        if self.type in ['input', 'bias']:
+        if self.type in ['input', 'bias', 'output']:
             self.out_val = self.in_val
         else:
             # sigmoid activation

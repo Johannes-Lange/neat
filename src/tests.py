@@ -55,3 +55,32 @@ def test_graph():
     print(graph.computation_order)
     # print(graph.connections)
 
+
+def test_forward_new():
+    reg = Registry(2, 2)
+
+    # 3 hidden nodes
+    for _ in range(3):
+        reg.create_node()
+
+    nodes = reg.nodes
+
+    connections = [reg.get_connection(n1, n2) for n1, n2 in [(nodes[0], nodes[5]), (nodes[5], nodes[6]),
+                                                            (nodes[6], nodes[3]), (nodes[1], nodes[7]),
+                                                            (nodes[7], nodes[5]), (nodes[6], nodes[7]),
+                                                            (nodes[7], nodes[4])]]
+
+    # connections = [Connection(nodes[0], nodes[5]), Connection(nodes[5], nodes[6]), Connection(nodes[6], nodes[3]),
+    #                Connection(nodes[1], nodes[7]), Connection(nodes[7], nodes[5]), Connection(nodes[6], nodes[7]),
+    #                Connection(nodes[7], nodes[4])]
+
+    g1 = Genom(reg, connections)
+    for c in g1.connections:
+        c.weight = 1
+
+    out = g1.forward_new(np.array([1, 0]))
+
+    print(out)
+
+
+test_forward_new()

@@ -2,8 +2,9 @@ from src.genom import Genom, crossover_genes, distance
 from src.registry import Registry
 import random
 import numpy as np
+from src.helper_functions import cross_entropy
 
-from test_case.classification_problem import INPUT_CIRC, inside, xor, INPUT_XOR
+from test_case.classification_problem import INPUT_CIRC, inside
 
 """
 Score has to be >= 0!
@@ -51,14 +52,17 @@ class Population:
         self.new_size = 0
 
     def evaluate_nets(self):
-        in_data = INPUT_CIRC
+        inputs = INPUT_CIRC
         for g in self.population:
             score = 0
-            for i in range(in_data.shape[0]):
-                pred = g.forward_new(in_data[i])
-                ret = self.fitness_fn(*in_data[i], pred)
+            for i, x in enumerate(inputs):
+                output = g.forward(inputs[i])
+                target = np.array([1, 0]) if (np.linalg.norm(inputs[i]) < 1) else np.array([0, 1])
+                ret = cross_entropy(output, target)  # self.fitness_fn(*in_data[i], pred)
                 score += ret
-            g.set_fitness(score)
+            # print(ret)
+            score /= inputs.shape[0]
+            g.set_fitness(1/score)
             self.scores.append(score)
 
     def speciate(self):
@@ -141,5 +145,5 @@ def calculate_spawn_amount(species, pop_size):
 
 pop = Population(2, 2, 150, inside)
 
-for _ in range(10000):
+for _ in range(300):
     pop.update()
