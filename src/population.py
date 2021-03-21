@@ -55,10 +55,10 @@ class Population:
         for g in self.population:
             score = 0
             for i, x in enumerate(inputs):
-                output = np.argmax(g.forward_new(inputs[i]))
+                output = np.argmax(g.forward_rec(inputs[i]))
                 target = np.argmax(inputs[i])
                 score += 1 if output == target else 0
-            # print(ret)
+
             score /= inputs.shape[0]
             g.set_fitness(score)
             self.scores.append(score)

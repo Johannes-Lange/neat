@@ -1,7 +1,6 @@
 import numpy as np
-import random
 
-INPUT_CIRC = np.random.uniform(-1, 1, (1000, 2))
+INPUT_CIRC = np.random.uniform(-1, 1, (100, 2))
 
 
 def inside_circle(x, y):
@@ -24,4 +23,3 @@ def inside(x, y, prediction):
 
 xor_inputs = [(0.0, 0.0), (0.0, 1.0), (1.0, 0.0), (1.0, 1.0)]
 xor_outputs = [0.0, 1.0, 1.0, 0.0]
-

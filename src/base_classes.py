@@ -31,7 +31,6 @@ class Node:
 
     def eval_ordered(self):
         self.activation()
-        # print(self.in_val)
 
     # return this node
     def get(self):
@@ -39,16 +38,18 @@ class Node:
 
     def activation(self):
         if self.type in ['input', 'bias', 'output']:
-            self.out_val = self.in_val
+            self.out_val = self.rec_val = self.in_val
         else:
             # sigmoid activation
-            self.out_val = 1 / (1 + np.exp(-4.9*self.in_val))
+            self.out_val = self.rec_val = 1 / (1 + np.exp(-4.9*self.in_val))
 
     def reset_vals(self):
-        self.in_val = self.out_val = 0
+        self.in_val = 0
+        self.out_val = 0
 
     def default(self):
-        self.in_val = self.out_val = 0
+        self.in_val = 0
+        self.out_val = 0
         self.next_nodes = []
 
     def __eq__(self, other):
@@ -77,9 +78,12 @@ class Connection:
 
     def eval_ordered(self):
         if self.enabled:
-            # print(self.n1.out_val * self.weight)
             self.n2.in_val += self.n1.out_val * self.weight
-            # print(self.n2.in_val)
+
+    def eval_recurrent(self):
+        # use the last states output val of nodes!
+        if self.enabled:
+            self.n2.in_val += self.n1.rec_val * self.weight
 
     def clear(self):
         ret = deepcopy(self)

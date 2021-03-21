@@ -38,59 +38,56 @@ class Genom:
         else:
             self.inherit_connections(connections)
 
-    def forward(self, x: np.array, verbose: bool = False):
-        if not self.ready:
-            self.sort_nodes_connections()
-            self.set_next_nodes()
-            self.ready = True
-
-        if verbose:
-            print('be sure to call set_next_nodes before forward')
-        assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
-
-        # assign input values from x
-        for i, n in enumerate(self.nodes):
-            if n.type != 'input':
-                break
-            n.in_val = x[i]
-
-        # evaluate (n times for recurrent connections to converge)
-        last_out = np.zeros(self.registry.outputs)
-        cycle = 0
-        while 1:
-            cycle += 1
-            for n in self.nodes:
-                n.evaluate()
-            out = self.get_output()
-            if np.allclose(out, last_out, rtol=1.e-3) or cycle > 1000:
-                break
-            last_out = out
-        if verbose:
-            print('cycles to converge:', cycle)
-        return out
-
-    def forward_new(self, x: np.array):
+    def forward(self, x: np.array):
         if not self.ready:
             self.ordered_graph()
+
+        for n in self.nodes:
+            n.reset_vals()
+
         assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
 
         # assign input values from x
         for i, n in enumerate([no for no in self.nodes if no.type == 'input']):
             n.in_val = x[i]
-            # print(f'{n} set to {x[i]}')
 
         for ob in self.computation_order:
             ob.eval_ordered()
-            # print([(n.in_val, n.type) for n in self.nodes])
 
         out = self.get_output()
 
-        # if all(out == np.array([.5, .5])):
-        #     print(self.nodes)
-        #     print([c.enabled for c in self.connections])
+        return out
 
+    def forward_rec(self, x: np.array):
+        if not self.ready:
+            self.ordered_graph()
+
+        assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
+
+        # clear input values for all nodes
         for n in self.nodes:
-            n.in_val = 0  # = n.out_val = 0
+            n.reset_vals()
+
+        # assign input values from x
+        for i, n in enumerate([no for no in self.nodes if no.type == 'input']):
+            n.in_val = x[i]
+
+        # calculate all recurrent connections first (output also recurrent, so do this later)
+        for ob in self.computation_order[self.normal_ops:]:
+            if isinstance(ob, Connection):
+                if ob.n2.type == 'output':
+                    print('dd')
+                    continue
+            else:
+                raise ValueError('there shouldn\'t be a node in recurrent operations list... some error in graph.py')
+            ob.eval_recurrent()
+
+        # standard operations in ordered graph
+        for ob in self.computation_order[:self.normal_ops]:
+            ob.eval_ordered()
+
+        out = self.get_output()
+
         return out
 
     def get_output(self):
@@ -226,12 +223,13 @@ class Genom:
     def ordered_graph(self):
         # get ordered nodes and connections
         self.sort_nodes_connections()
-        self.set_next_nodes()
+        # self.set_next_nodes()
         self.net_graph = Graph(self.nodes, self.connections)
         self.computation_order, self.normal_ops = self.net_graph.get_computation_order()
 
         self.ready = True
 
+    """ OLD, don't use
     def set_next_nodes(self):
         # find nodes from connection in self.nodes
         for c in self.connections:
@@ -240,6 +238,38 @@ class Genom:
 
             if n2 not in list(map(lambda x: x[0], n1.next_nodes)):
                 n1.next_nodes.append((n2, c.enabled, c.weight))
+    
+    def forward_old(self, x: np.array, verbose: bool = False):
+        if not self.ready:
+            self.sort_nodes_connections()
+            self.set_next_nodes()
+            self.ready = True
+
+        if verbose:
+            print('be sure to call set_next_nodes before forward')
+        assert x.size == self.registry.inputs, 'size of input {x.size} must match input nodes {self.registry.inputs}'
+
+        # assign input values from x
+        for i, n in enumerate(self.nodes):
+            if n.type != 'input':
+                break
+            n.in_val = x[i]
+
+        # evaluate (n times for recurrent connections to converge)
+        last_out = np.zeros(self.registry.outputs)
+        cycle = 0
+        while 1:
+            cycle += 1
+            for n in self.nodes:
+                n.evaluate()
+            out = self.get_output()
+            if np.allclose(out, last_out, rtol=1.e-3) or cycle > 1000:
+                break
+            last_out = out
+        if verbose:
+            print('cycles to converge:', cycle)
+        return out
+    """
 
 
 def crossover_genes(p1: Genom, p2: Genom):

@@ -35,10 +35,10 @@ def test_forward():
         g1.mutate_weight_shift()
         g1.mutate_enable_disable_connection()
 
-    g1.set_next_nodes()
-    g1.ordered_graph()
+    out = None
     for _ in range(10):
-        out = g1.forward_new(x,)
+        out = g1.forward(x,)
+        out = g1.forward_rec(x, )
     print(out)
 
 
@@ -78,8 +78,10 @@ def test_forward_new():
     for c in g1.connections:
         c.weight = 1
 
-    out = g1.forward_new(np.array([1, 0]))
-
+    print('recurrent network, output should be different')
+    out = g1.forward_rec(np.array([1, 0]))
+    print(out)
+    out = g1.forward_rec(np.array([1, 0]))
     print(out)
 
 
