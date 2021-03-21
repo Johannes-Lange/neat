@@ -99,7 +99,7 @@ class Genom:
         for n in self.nodes:
             n.default()
 
-        inputs = [n for n in self.nodes if (n.type == 'input') or (n.type == 'hidden')]
+        inputs = [n for n in self.nodes if (n.type == 'input') or (n.type == 'bias')]
         outputs = [n for n in self.nodes if n.type == 'output']
         for _ in range(len(outputs)):
             n1 = random.choice(inputs)
@@ -149,11 +149,17 @@ class Genom:
         # recurrent connections possible!
         if random.random() < 1-P_NEW_LINK:
             return
+        count = 0
         while True:
+            count += 1
             n1 = random.choice(self.nodes)
             n2 = random.choice(self.nodes)
+            if Connection(n1, n2) in self.connections:
+                continue
             if (n1.type != 'output') and (n2.type != 'bias'):
                 break
+            if count > 10:
+                return
         c = self.registry.get_connection(n1, n2)
         c.rand_weight()
         self.connections.append(c)
@@ -162,7 +168,6 @@ class Genom:
     # add node in connection, old connection disabled
     def mutate_add_node(self):
         self.ready = False
-
         if random.random() < 1-P_NEW_NODE:
             return
 

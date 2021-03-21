@@ -9,7 +9,7 @@ from test_case.classification_problem import INPUT_CIRC, inside, xor, INPUT_XOR
 Score has to be >= 0!
 """
 
-D_THRESHOLD = 2.
+D_THRESHOLD = 3.
 
 
 class Population:
@@ -58,7 +58,6 @@ class Population:
                 pred = g.forward_new(in_data[i])
                 ret = self.fitness_fn(*in_data[i], pred)
                 score += ret
-            # print(pred)
             g.set_fitness(score)
             self.scores.append(score)
 
