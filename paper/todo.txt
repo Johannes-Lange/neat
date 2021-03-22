@@ -1,0 +1,2 @@
+- dont respeciate every generation
+https://stackoverflow.com/questions/50960834/neat-speciating/51837691#51837691
