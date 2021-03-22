@@ -38,10 +38,13 @@ class Node:
 
     def activation(self):
         if self.type in ['input', 'bias', 'output']:
-            self.out_val = self.rec_val = self.in_val
+            self.out_val = self.in_val
+            self.rec_val = self.in_val
         else:
             # sigmoid activation
-            self.out_val = self.rec_val = 1 / (1 + np.exp(-4.9*self.in_val))
+            sig = 1 / (1 + np.exp(-4.9*self.in_val))
+            self.out_val = sig
+            self.rec_val = sig
 
     def reset_vals(self):
         self.in_val = 0

@@ -3,10 +3,11 @@ from copy import deepcopy
 
 
 class Registry:
-    def __init__(self, input_size: int, output_size: int):
+    def __init__(self, input_size: int, output_size: int, max_hidden: int = None):
         # Number of input and output nodes
         self.inputs = input_size
         self.outputs = output_size
+        self.hidden_max = max_hidden
 
         # Global nodes
         self.nb_nodes = 0
@@ -45,6 +46,9 @@ class Registry:
 
     # create new node
     def create_node(self):
+        if self.hidden_max is not None:
+            if len(self.nodes) - self.inputs - self.outputs >= self.hidden_max:
+                return False
         new_node = Node(id_=self.nb_nodes)
         self.nodes.append(new_node)
         self.nb_nodes += 1
@@ -63,6 +67,8 @@ class Registry:
         else:
             # create a new node, add split id to connection
             new_node = self.create_node()
+            if not new_node:
+                return False
             local_con.split = new_node.id
             return new_node
 

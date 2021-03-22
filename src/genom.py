@@ -9,7 +9,7 @@ import numpy as np
 
 C1, C2, C3 = 1, 1, .4
 P_WEIGHT = .8
-P_ENDISABLE = .5
+P_ENDISABLE = .7
 P_NEW_NODE = .03  # 0.03
 P_NEW_LINK = .01  # 0.01
 
@@ -87,12 +87,13 @@ class Genom:
             ob.eval_ordered()
 
         out = self.get_output()
-
+        # print(out)
         return out
 
     def get_output(self):
         out = [n for n in self.nodes if n.type == 'output']
         ret = np.array([n.out_val for n in out])
+        # print(ret)
         return softmax(ret)
 
     def initial_connections(self):
@@ -141,7 +142,6 @@ class Genom:
 
     """ *** Mutations *** """
     def apply_mutations(self):
-        # TODO: order?
         self.mutate_add_node()
         self.mutate_link()
         self.mutate_weight_shift()
@@ -182,6 +182,10 @@ class Genom:
         # get the splitting node
         n_add = self.registry.split_connection(c)
 
+        # check if max hidden size is reached
+        if not n_add:
+            return
+
         # create two new connections instead
         c1_add = self.registry.get_connection(c.n1, n_add)
         c1_add.weight = 1
@@ -199,8 +203,12 @@ class Genom:
         self.ready = False
         if random.random() < 1-P_ENDISABLE:
             return
-        c = random.choice(self.connections)
-        c.en_dis_able()
+        for c in self.connections:
+            if c.enabled is False:
+                c.enable()
+                break
+        # c = random.choice(self.connections)
+        # c.en_dis_able()
         self.sort_nodes_connections()
 
     # shift weight

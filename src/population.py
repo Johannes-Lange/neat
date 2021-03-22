@@ -7,12 +7,13 @@ import numpy as np
 Score has to be >= 0!
 """
 
-D_THRESHOLD = 4.
+D_THRESHOLD = 3
+TEST_SET = np.random.uniform(-1.25, 1.25, (100, 2))
 
 
 class Population:
-    def __init__(self, input_size: int, output_size: int, population_size: int, fitness_fn):
-        self.registry = Registry(input_size, output_size)
+    def __init__(self, input_size: int, output_size: int, population_size: int, fitness_fn, max_hidden: int = None):
+        self.registry = Registry(input_size, output_size, max_hidden)
         self.fitness_fn = fitness_fn
 
         self.population_size = population_size
@@ -49,16 +50,18 @@ class Population:
         self.new_size = 0
 
     def evaluate_nets(self):
-        inputs = np.random.uniform(-1.25, 1.25, (100, 2))  # INPUT_CIRC
+        # norm between [0,1]
+        inputs_norm = (TEST_SET + 1.25) / 2.5
+
         for g in self.population:
             score = 0
-            for i, x in enumerate(inputs):
-                output = g.forward(x)
+            for i, x in enumerate(inputs_norm):
+                output = g.forward_rec(x)
                 output = np.argmax(output)
-                target = 1 if np.linalg.norm(x) < 1 else 0
+                target = 1 if np.linalg.norm(TEST_SET[i]) < 1 else 0
                 score += 1 if output == target else 0
 
-            score /= inputs.shape[0] / 100
+            score /= TEST_SET.shape[0] / 100
             g.set_fitness(score)
             self.scores.append(score)
 
