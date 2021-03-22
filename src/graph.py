@@ -65,15 +65,6 @@ class Graph:
             # set this node visited
             self.graph[node_id]['visited'] = True
 
-        # can we calculate this neuron? Yes, if all incoming connections are calculated (= this node is active)
-        if self.graph[node_id]['active']:
-            # calculate all out connections
-            for c_id in self.graph[node_id]['out']:
-                if not self.connections[c_id]['calculated']:
-                    self.connections[c_id]['calculated'] = True
-                    self.order.append((self.c_to_str(c_id), c_id))
-            return
-
         # if incoming connection is not calculated, recursively go to the node this connection comes from
         ins = [self.connections[c] for c in self.graph[node_id]['in']]
         if not all([c['calculated'] for c in ins]):
@@ -82,7 +73,7 @@ class Graph:
                     # if we can calculate the node before, we can calculate this connection
                     # print(node_id, c['left'])
                     self.recursive_solve(c['left'], node_id)
-        # if all incoming connections are already calculated --> calculate this node and all outs
+        # else if all incoming connections are already calculated --> calculate this node and all outs
         else:
             self.graph[node_id]['active'] = True
             self.order.append(('node', node_id))
@@ -91,6 +82,7 @@ class Graph:
                 self.order.append((self.c_to_str(c_id), c_id))
             return
 
+        # check again if now all incoming connections are calculated
         if all([c['calculated'] for c in ins]):
             # set this node to active
             self.graph[node_id]['active'] = True

@@ -85,4 +85,7 @@ def test_forward_new():
     print(out)
 
 
-test_forward_new()
+test_graph()
+
+# [1 (input), 1: (1) --> (5), 2 (input), 4: (2) --> (7), 7 (hidden), 5: (7) --> (4), 7: (7) --> (5),
+# 5 (hidden), 2: (5) --> (6), 6 (hidden), 3: (6) --> (3), 3 (output), 4 (output), 6: (6) --> (7)]

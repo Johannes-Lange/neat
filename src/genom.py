@@ -147,27 +147,25 @@ class Genom:
         self.mutate_weight_shift()
         self.mutate_enable_disable_connection()
 
-    # add a new connection randomly
+    # add a new connection randomly, recurrent connections are possible
     def mutate_link(self):
         self.ready = False
-        # recurrent connections possible!
         if random.random() < 1-P_NEW_LINK:
             return
-        count = 0
-        while True:
-            count += 1
-            n1 = random.choice(self.nodes)
-            n2 = random.choice(self.nodes)
-            if Connection(n1, n2) in self.connections:
-                continue
-            if (n1.type != 'output') and (n2.type != 'bias') and (n2.type != 'input'):
-                break
-            if count > 10:
-                return
-        c = self.registry.get_connection(n1, n2)
-        c.rand_weight()
-        self.connections.append(c)
-        self.sort_nodes_connections()
+
+        n1 = random.choice(self.nodes)
+        n2 = random.choice(self.nodes)
+
+        # if this connection exists --> enable it
+        if Connection(n1, n2) in self.connections:
+            c = next(c for c in self.connections if c == Connection(n1, n2))
+            c.enable()
+        # else if this connection is possible --> create it
+        elif (n1.type != 'output') and ((n2.type != 'bias') or (n2.type != 'input')):
+            c = self.registry.get_connection(n1, n2)
+            c.rand_weight()
+            self.connections.append(c)
+            self.sort_nodes_connections()
 
     # add node in connection, old connection disabled
     def mutate_add_node(self):
@@ -203,12 +201,12 @@ class Genom:
         self.ready = False
         if random.random() < 1-P_ENDISABLE:
             return
-        for c in self.connections:
-            if c.enabled is False:
-                c.enable()
-                break
-        # c = random.choice(self.connections)
-        # c.en_dis_able()
+        # for c in self.connections:
+        #     if c.enabled is False:
+        #         c.enable()
+        #         break
+        c = random.choice(self.connections)
+        c.en_dis_able()
         self.sort_nodes_connections()
 
     # shift weight
@@ -219,7 +217,7 @@ class Genom:
             return
         for c in self.connections:
             if random.random() < .9:
-                c.weight *= random.uniform(0.5, 1.5)
+                c.weight += random.uniform(-.5, .5)
             else:
                 c.weight = random.uniform(-2, 2)
         self.sort_nodes_connections()
@@ -292,19 +290,15 @@ def crossover_genes(p1: Genom, p2: Genom):
     # align genes
     id_low = sorted(list(c_low.keys()))
     id_high = sorted(list(c_high.keys()))
-    max_id = max(id_low+id_high)
+    max_id = max(id_low + id_high)
 
     # TODO: does this work?
     new = []
     for cid in range(max_id + 1):
         # connection in both genes
         if cid in id_low and cid in id_high:
-            if random.random() < 0.5:
-                new.append(c_low[cid])
-                continue
-            else:
-                new.append(c_high[cid])
-                continue
+            new.append(c_low[cid]) if random.random() < 0.5 else new.append(c_high[cid])
+            continue
         # disjoint and excess
         elif cid in id_high:
             new.append(c_high[cid])
@@ -326,7 +320,7 @@ def distance(g1: Genom, g2: Genom):
     match, disjoint, excess = [], [], []
 
     k1, k2 = [], []
-    for i in range(max_id):
+    for i in range(max_id+1):
         k1.append(i if i in id1 else -1)
         k2.append(i if i in id2 else -1)
 
@@ -344,5 +338,6 @@ def distance(g1: Genom, g2: Genom):
 
     w_diff = [abs(cons1[cid].weight - cons2[cid].weight) for cid in match]
     w_diff = save_devide(w_diff)
+
     n = max(len(id1), len(id2))
     return C1 * len(excess) / n + C2 * len(disjoint) / n + C3 * w_diff
